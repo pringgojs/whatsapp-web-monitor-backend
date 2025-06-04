@@ -1,4 +1,7 @@
 const { Client, LocalAuth } = require("whatsapp-web.js");
+const qrcode = require("qrcode");
+this.qrCodes = {}; // simpan qr base64
+this.sessionStatus = {}; // key: clientId, value: string
 
 class SessionManager {
   constructor() {
@@ -18,8 +21,13 @@ class SessionManager {
       },
     });
 
-    client.on("qr", (qr) => {
+    client.on("qr", (qr) => async () => {
       console.log(`[${clientId}] QR Code:\n${qr}`);
+      this.sessionStatus[clientId] = "qr";
+
+      const qrImage = await qrcode.toDataURL(qr); // base64
+      this.qrCodes[clientId] = qrImage;
+      this.emit("qr", { clientId, qr, qrImage });
     });
 
     client.on("ready", () => {
@@ -32,7 +40,15 @@ class SessionManager {
 
     client.on("disconnected", (reason) => {
       console.log(`[${clientId}] Disconnected: ${reason}`);
+      this.sessionStatus[clientId] = "disconnected";
+      this.qrCodes[clientId] = null; // clear QR code on disconnect
+
       delete this.sessions[clientId];
+    });
+
+    client.on("auth_failure", () => {
+      this.sessionStatus[clientId] = "auth_failure";
+      console.log(`[${clientId}] Auth failure`);
     });
 
     client.initialize();
@@ -44,8 +60,16 @@ class SessionManager {
     return this.sessions[clientId] || null;
   }
 
+  getQrCode(clientId) {
+    return this.qrCodes?.[clientId] || null;
+  }
+
   getAllSessions() {
     return Object.keys(this.sessions);
+  }
+
+  getStatus(clientId) {
+    return this.sessionStatus?.[clientId] || "unknown";
   }
 }
 

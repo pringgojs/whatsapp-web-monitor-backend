@@ -16,6 +16,8 @@ router.get("/", (req, res) => {
   res.json({ sessions });
 });
 
+// POST /sessions/:clientId
+// Protected route, requires authentication and role check
 router.post(
   "/:clientId",
   verifyToken,
@@ -26,4 +28,29 @@ router.post(
     res.status(201).json({ status: "Session created", clientId });
   }
 );
+
+// GET /sessions/:clientId/qr
+router.get("/:clientId/qr", (req, res) => {
+  const { clientId } = req.params;
+  const qrImage = sessionManager.getQrCode(clientId);
+  if (!qrImage) {
+    return res
+      .status(404)
+      .json({ error: "QR not found or session already authenticated" });
+  }
+  res.json({ clientId, qrImage });
+});
+
+// GET /sessions/:clientId
+router.get("/:clientId/status", (req, res) => {
+  const { clientId } = req.params;
+  const session = sessionManager.getSession(clientId);
+  // const status = sessionManager.getStatus(clientId);
+
+  if (!session) return res.status(404).json({ status: "not_found" });
+
+  const state = session.state || "unknown";
+  res.json({ clientId, status: state });
+});
+
 module.exports = router;
