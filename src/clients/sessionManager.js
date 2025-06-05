@@ -31,6 +31,7 @@ class SessionManager {
 
     client.on("ready", () => {
       console.log(`[${clientId}] WhatsApp client ready`);
+      this.sessionStatus[clientId] = "ready";
     });
 
     client.on("authenticated", () => {

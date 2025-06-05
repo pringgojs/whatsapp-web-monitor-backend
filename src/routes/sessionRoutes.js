@@ -41,16 +41,12 @@ router.get("/:clientId/qr", (req, res) => {
   res.json({ clientId, qrImage });
 });
 
-// GET /sessions/:clientId
+// GET /sessions/:clientId/status
 router.get("/:clientId/status", (req, res) => {
   const { clientId } = req.params;
-  const session = sessionManager.getSession(clientId);
-  // const status = sessionManager.getStatus(clientId);
-
-  if (!session) return res.status(404).json({ status: "not_found" });
-
-  const state = session.state || "unknown";
-  res.json({ clientId, status: state });
+  // Ambil status dari sessionManager, meskipun session null
+  const status = sessionManager.getStatus(clientId);
+  res.json({ clientId, status });
 });
 
 module.exports = router;
