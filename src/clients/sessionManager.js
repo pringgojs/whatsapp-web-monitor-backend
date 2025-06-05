@@ -1,11 +1,11 @@
 const { Client, LocalAuth } = require("whatsapp-web.js");
 const qrcode = require("qrcode");
-this.qrCodes = {}; // simpan qr base64
-this.sessionStatus = {}; // key: clientId, value: string
 
 class SessionManager {
   constructor() {
     this.sessions = {}; // { clientId: ClientInstance }
+    this.qrCodes = {}; // simpan qr base64
+    this.sessionStatus = {}; // key: clientId, value: string
   }
 
   createSession(clientId) {
@@ -21,13 +21,12 @@ class SessionManager {
       },
     });
 
-    client.on("qr", (qr) => async () => {
+    client.on("qr", async (qr) => {
       console.log(`[${clientId}] QR Code:\n${qr}`);
       this.sessionStatus[clientId] = "qr";
 
       const qrImage = await qrcode.toDataURL(qr); // base64
       this.qrCodes[clientId] = qrImage;
-      this.emit("qr", { clientId, qr, qrImage });
     });
 
     client.on("ready", () => {
