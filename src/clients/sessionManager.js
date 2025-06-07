@@ -95,6 +95,28 @@ class SessionManager {
   getStatus(clientId) {
     return this.sessionStatus?.[clientId] || "unknown";
   }
+
+  async getClientInfo(clientId) {
+    const session = this.getSession(clientId);
+    let waNumber = null;
+    console.log("user:", clientId, session.info.me.user);
+    if (session && session.info && session.info.me && session.info.me.user) {
+      waNumber = session.info.me.user;
+      console.log("info", waNumber);
+    } else {
+      // fallback: format dari clientId
+      let num = String(clientId).replace(/\D/g, "");
+      if (num.startsWith("0")) num = "62" + num.slice(1);
+      if (!num.startsWith("62")) num = "62" + num;
+      num = num.replace(/^620+/, "62");
+      if (num.length < 10) num = null;
+      waNumber = num;
+    }
+    return {
+      clientId,
+      waNumber,
+    };
+  }
 }
 
 module.exports = new SessionManager();

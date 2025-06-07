@@ -56,4 +56,11 @@ router.get("/:clientId/status", (req, res) => {
   res.json({ clientId, status });
 });
 
+// GET /sessions/:clientId/info
+router.get("/:clientId/info", async (req, res) => {
+  const { clientId } = req.params;
+  const info = await sessionManager.getClientInfo(clientId);
+  res.json(info);
+});
+
 module.exports = router;
