@@ -9,8 +9,26 @@ class SessionManager {
   }
 
   createSession(clientId) {
+    // Jika session ada tapi status destroyed/disconnected, hapus dan buat ulang
     if (this.sessions[clientId]) {
-      return this.sessions[clientId];
+      const status = this.sessionStatus[clientId];
+      if (status !== "destroyed" && status !== "disconnected") {
+        return this.sessions[clientId];
+      } else {
+        // Hapus session lama
+        try {
+          this.sessions[clientId].destroy && this.sessions[clientId].destroy();
+        } catch (e) {}
+        delete this.sessions[clientId];
+      }
+    }
+
+    // Jika status sebelumnya destroyed, ubah ke initializing
+    if (this.sessionStatus[clientId] === "destroyed") {
+      this.sessionStatus[clientId] = "initializing";
+    }
+    if (this.sessionStatus[clientId] === "disconnected") {
+      this.sessionStatus[clientId] = "initializing";
     }
 
     const client = new Client({
@@ -49,6 +67,12 @@ class SessionManager {
     client.on("auth_failure", () => {
       this.sessionStatus[clientId] = "auth_failure";
       console.log(`[${clientId}] Auth failure`);
+    });
+
+    client.on("message", (msg) => {
+      if (msg.body == "!ping") {
+        msg.reply("pong");
+      }
     });
 
     client.initialize();
