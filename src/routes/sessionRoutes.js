@@ -32,6 +32,13 @@ router.post(
 // GET /sessions/:clientId/qr
 router.get("/:clientId/qr", (req, res) => {
   const { clientId } = req.params;
+  // Pastikan session sudah ada dan status QR
+  const status = sessionManager.getStatus(clientId);
+  if (status !== "qr") {
+    return res
+      .status(404)
+      .json({ error: "QR not available. Status: " + status });
+  }
   const qrImage = sessionManager.getQrCode(clientId);
   if (!qrImage) {
     return res
