@@ -1,6 +1,7 @@
 node_modules/
 dist/
 .wwebjs_auth/
+.wwebjs_cache/
 # Logs
 logs
 .env
