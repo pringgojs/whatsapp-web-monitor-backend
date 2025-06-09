@@ -4,6 +4,7 @@ const sessionRoutes = require("./routes/sessionRoutes");
 const authRoutes = require("./routes/authRoutes");
 const apiClientRoutes = require("./routes/apiClientRoutes");
 const messageRoutes = require("./routes/messageRoutes");
+const userRoutes = require("./routes/userRoutes");
 
 const app = express();
 app.use(cors());
@@ -16,5 +17,7 @@ app.use("/auth", authRoutes);
 app.use("/clients", apiClientRoutes);
 
 app.use("/messages", messageRoutes);
+
+app.use("/users", userRoutes);
 
 module.exports = app;
