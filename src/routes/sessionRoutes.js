@@ -3,6 +3,9 @@ const router = express.Router();
 const sessionManager = require("../clients/sessionManager");
 const { verifyToken, requireRole } = require("../middlewares/authMiddleware");
 
+// Simpan webhook per client (in-memory)
+const webhooks = {};
+
 // POST /sessions/:clientId
 router.post("/:clientId", (req, res) => {
   const { clientId } = req.params;
@@ -61,6 +64,24 @@ router.get("/:clientId/info", async (req, res) => {
   const { clientId } = req.params;
   const info = await sessionManager.getClientInfo(clientId);
   res.json(info);
+});
+
+// POST /sessions/:clientId/webhook
+router.post("/:clientId/webhook", (req, res) => {
+  const { clientId } = req.params;
+  const { webhookUrl } = req.body;
+  if (!webhookUrl) {
+    return res.status(400).json({ error: "Webhook URL is required" });
+  }
+  webhooks[clientId] = webhookUrl;
+  res.json({ status: "ok", clientId, webhookUrl });
+});
+
+// GET /sessions/:clientId/webhook
+router.get("/:clientId/webhook", (req, res) => {
+  const { clientId } = req.params;
+  const webhookUrl = webhooks[clientId] || null;
+  res.json({ clientId, webhookUrl });
 });
 
 module.exports = router;
