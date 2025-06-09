@@ -1,5 +1,16 @@
 const { Client, LocalAuth } = require("whatsapp-web.js");
 const qrcode = require("qrcode");
+const axios = require("axios"); // Tambah axios untuk webhook
+
+// Webhook config per client (in-memory, bisa dipindah ke DB jika perlu)
+// Ambil webhooks dari require cache agar selalu up-to-date
+let webhooks;
+function getWebhooks() {
+  if (!webhooks) {
+    webhooks = require("../routes/sessionRoutes").webhooks || {};
+  }
+  return webhooks;
+}
 
 class SessionManager {
   constructor() {
@@ -69,9 +80,67 @@ class SessionManager {
       console.log(`[${clientId}] Auth failure`);
     });
 
-    client.on("message", (msg) => {
-      if (msg.body == "!ping") {
-        msg.reply("pong");
+    client.on("message", async (msg) => {
+      // --- FILTER & IGNORE ---
+      // Ignore group messages
+      if (msg.from.split("@")[1]?.includes("g.us")) return;
+      // Ignore notification/template
+      if (["e2e_notification", "notification_template"].includes(msg.type))
+        return;
+      // Ignore status broadcast
+      if (msg.id.remote === "status@broadcast") return;
+
+      // --- WEBHOOK LOGIC ---
+      const webhookUrl = getWebhooks()[clientId];
+      let payload = null;
+      let shouldSend = false;
+
+      if (msg.type === "location") {
+        payload = {
+          number: msg.from,
+          message: msg.location, // location object
+          type: msg.type,
+          timestamp: msg.timestamp,
+        };
+        shouldSend = true;
+      } else if (msg.hasMedia) {
+        const attachmentData = await msg.downloadMedia();
+        const allowedTypes = [
+          "image/jpeg",
+          "image/png",
+          "application/pdf",
+          "audio/ogg; codecs=opus",
+        ];
+        if (allowedTypes.includes(attachmentData.mimetype)) {
+          payload = {
+            number: msg.from,
+            message: attachmentData.data, // base64 string
+            type: msg.type,
+            mimetype: attachmentData.mimetype,
+            filename: attachmentData.filename,
+            body: msg.body,
+            timestamp: msg.timestamp,
+          };
+          shouldSend = true;
+        }
+      } else if (!(msg.body === "" && msg.type === "e2e_notification")) {
+        payload = {
+          number: msg.from,
+          message: msg.body,
+          type: msg.type,
+          timestamp: msg.timestamp,
+        };
+        shouldSend = true;
+      }
+
+      console.log("payload:", payload, webhookUrl, shouldSend);
+      if (webhookUrl && shouldSend && payload) {
+        try {
+          console.log(`[${clientId}] Sending webhook to ${webhookUrl}`);
+          await axios.post(webhookUrl, payload, { timeout: 15000 }); // timeout 15 detik
+        } catch (err) {
+          console.error(`[${clientId}] Webhook error:`, err.message);
+        }
       }
     });
 

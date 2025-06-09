@@ -95,3 +95,4 @@ router.get("/:clientId/webhook", (req, res) => {
 });
 
 module.exports = router;
+module.exports.webhooks = webhooks;
