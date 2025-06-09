@@ -5,6 +5,8 @@ const { verifyToken, requireRole } = require("../middlewares/authMiddleware");
 
 // Simpan webhook per client (in-memory)
 const webhooks = {};
+// Simpan custom header per client (in-memory)
+const webhookHeaders = {};
 
 // POST /sessions/:clientId
 router.post("/:clientId", (req, res) => {
@@ -94,5 +96,24 @@ router.get("/:clientId/webhook", (req, res) => {
   res.json({ clientId, webhookUrl });
 });
 
+// POST /sessions/:clientId/webhook-headers
+router.post("/:clientId/webhook-headers", (req, res) => {
+  const { clientId } = req.params;
+  const { headers } = req.body;
+  if (!headers || typeof headers !== "object") {
+    return res.status(400).json({ error: "Headers object is required" });
+  }
+  webhookHeaders[clientId] = headers;
+  res.json({ status: "ok", clientId, headers });
+});
+
+// GET /sessions/:clientId/webhook-headers
+router.get("/:clientId/webhook-headers", (req, res) => {
+  const { clientId } = req.params;
+  const headers = webhookHeaders[clientId] || null;
+  res.json({ clientId, headers });
+});
+
 module.exports = router;
 module.exports.webhooks = webhooks;
+module.exports.webhookHeaders = webhookHeaders;

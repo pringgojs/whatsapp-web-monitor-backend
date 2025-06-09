@@ -3,13 +3,20 @@ const qrcode = require("qrcode");
 const axios = require("axios"); // Tambah axios untuk webhook
 
 // Webhook config per client (in-memory, bisa dipindah ke DB jika perlu)
-// Ambil webhooks dari require cache agar selalu up-to-date
+// Sekarang juga menyimpan custom headers per client
 let webhooks;
+let webhookHeaders;
 function getWebhooks() {
   if (!webhooks) {
     webhooks = require("../routes/sessionRoutes").webhooks || {};
   }
   return webhooks;
+}
+function getWebhookHeaders() {
+  if (!webhookHeaders) {
+    webhookHeaders = require("../routes/sessionRoutes").webhookHeaders || {};
+  }
+  return webhookHeaders;
 }
 
 class SessionManager {
@@ -92,6 +99,7 @@ class SessionManager {
 
       // --- WEBHOOK LOGIC ---
       const webhookUrl = getWebhooks()[clientId];
+      const customHeaders = getWebhookHeaders()[clientId] || {};
       let payload = null;
       let shouldSend = false;
 
@@ -137,7 +145,13 @@ class SessionManager {
       if (webhookUrl && shouldSend && payload) {
         try {
           console.log(`[${clientId}] Sending webhook to ${webhookUrl}`);
-          await axios.post(webhookUrl, payload, { timeout: 15000 }); // timeout 15 detik
+          await axios.post(webhookUrl, payload, {
+            timeout: 15000, // 15 detik
+            headers: {
+              "Content-Type": "application/json",
+              ...customHeaders,
+            },
+          });
         } catch (err) {
           console.error(`[${clientId}] Webhook error:`, err.message);
         }
