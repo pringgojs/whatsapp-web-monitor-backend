@@ -52,11 +52,21 @@ router.get("/:clientId/qr", (req, res) => {
 });
 
 // GET /sessions/:clientId/status
-router.get("/:clientId/status", (req, res) => {
+router.get("/:clientId/status", async (req, res) => {
   const { clientId } = req.params;
   // Ambil status dari sessionManager, meskipun session null
   const status = sessionManager.getStatus(clientId);
-  res.json({ clientId, status });
+  let waNumber = null;
+  if (status === "ready") {
+    // Ambil nomor WhatsApp jika status ready
+    try {
+      const info = await sessionManager.getClientInfo(clientId);
+      waNumber = info.waNumber || null;
+    } catch (e) {
+      waNumber = null;
+    }
+  }
+  res.json({ clientId, status, waNumber });
 });
 
 // GET /sessions/:clientId/info
