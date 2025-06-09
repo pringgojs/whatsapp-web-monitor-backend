@@ -1,58 +1,37 @@
-# WhatsApp Web Monitor - Backend
+# WhatsApp Web Monitoring Backend
 
-This is the backend service for WhatsApp Web Monitor, built with Node.js, Express, and whatsapp-web.js. It provides RESTful APIs for managing WhatsApp Web sessions, user authentication, and client monitoring.
+Backend Node.js/Express untuk monitoring WhatsApp Web (whatsapp-web.js).
 
-## Features
+## Fitur Utama
 
-- Multi-client WhatsApp Web session management
-- QR code authentication and session status monitoring
-- User authentication (JWT-based)
-- Role-based access control (admin/user)
-- RESTful API for frontend integration
+- **Autentikasi JWT**: Login, register, proteksi endpoint
+- **Manajemen Client WhatsApp**:
+  - Tambah, hapus, edit, reconnect, scan QR, cek status, info client
+  - Endpoint webhook per client (GET/POST /sessions/:clientId/webhook)
+  - Endpoint info client (GET /sessions/:clientId/info)
+  - Endpoint group (GET /sessions/:clientId/groups)
+- **Pengiriman Pesan**: POST /messages (dengan validasi nomor & status client)
+- **Webhook**: Simpan & ambil URL webhook per client (in-memory, siap migrasi DB)
+- **Status & QR**: Endpoint status, QR code, polling status
+- **Proteksi Role**: Hanya user dengan role tertentu bisa akses endpoint tertentu
+- **Integrasi Penuh dengan Frontend**
+- **Error Handling**: Semua endpoint mengembalikan error message yang jelas
 
-## Requirements
+## Instalasi & Menjalankan
 
-- Node.js v16 or later
-- npm
+1. `npm install`
+2. Salin/atur file `.env` jika perlu (PORT, JWT_SECRET, dsb)
+3. `npm run dev` atau `node src/app.js`
 
-## Setup
+## Struktur Utama
 
-1. **Install dependencies:**
-   ```bash
-   npm install
-   ```
-2. **Configure environment variables:**
+- `src/routes/` - Semua endpoint utama (sessionRoutes, messageRoutes, authRoutes, apiClientRoutes)
+- `src/clients/sessionManager.js` - Manajemen session WhatsApp
+- `src/utils/waNumber.js` - Helper format nomor WhatsApp
+- `src/models/userModel.js` - Model user (in-memory)
 
-   - Copy `.env.example` to `.env` and adjust as needed (or set `JWT_SECRET` in your environment).
+## Catatan
 
-3. **Run the backend server:**
-   ```bash
-   node src/index.js
-   # or
-   npm start
-   ```
-   The server will run on `http://localhost:3000` by default.
-
-## API Endpoints (Main)
-
-- `POST   /auth/login` — User login
-- `POST   /auth/register` — User registration
-- `GET    /sessions` — List all WhatsApp clients
-- `POST   /sessions/:clientId` — Create/init WhatsApp session (scan QR)
-- `GET    /sessions/:clientId/status` — Get client status
-- `GET    /sessions/:clientId/qr` — Get QR code for WhatsApp login
-- `DELETE /clients/:clientId` — Delete client
-- `POST   /clients/:clientId/disconnect` — Logout WhatsApp client
-- `POST   /clients/:clientId/destroy` — Destroy WhatsApp connection (keep session)
-
-> See the code for more endpoints and details.
-
-## Development
-
-- Code is located in `src/`
-- Main entry: `src/index.js` or `index.js`
-- Session logic: `src/clients/sessionManager.js`
-
-## License
-
-MIT
+- Webhook per client saat ini disimpan in-memory (bisa diupgrade ke database)
+- Pastikan frontend sudah mengarah ke API backend yang benar
+- Semua endpoint sudah terintegrasi dengan frontend
