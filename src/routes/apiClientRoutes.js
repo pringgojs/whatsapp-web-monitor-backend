@@ -4,37 +4,50 @@ const sessionManager = require("../clients/sessionManager");
 const {
   createClient,
   listClients,
+  deleteClient,
 } = require("../controllers/apiClientController");
 const { verifyToken, requireRole } = require("../middlewares/authMiddleware");
 
-router.post("/", verifyToken, requireRole(["admin"]), createClient);
+// Tambah client baru (CRUD utama)
+router.post(
+  "/",
+  verifyToken,
+  requireRole(["admin", "user"]),
+  (req, res, next) => {
+    // Validasi: id harus unik
+    const { id } = req.body;
+    const clients = require("../models/apiClientModel").getAllClients();
+    if (clients.find((c) => c.id === id)) {
+      return res.status(400).json({ error: "Client ID sudah terdaftar." });
+    }
+    next();
+  },
+  createClient
+);
+
 router.get("/", verifyToken, requireRole(["admin", "user"]), listClients);
 
-// DELETE /clients/:clientId
-router.delete("/:clientId", (req, res) => {
-  const { clientId } = req.params;
-  const session = sessionManager.getSession(clientId);
-  const status = sessionManager.getStatus(clientId);
-  if (status === "ready" || status === "connected") {
-    return res.status(400).json({
-      error:
-        "Client sedang terhubung, tidak bisa diedit. Silakan disconnect terlebih dahulu.",
-    });
-  }
-  if (session) {
-    console.log("proses delete session", clientId);
-    session.destroy(); // disconnect WhatsApp client
-    delete sessionManager.sessions[clientId];
-    sessionManager.qrCodes[clientId] = null;
-    sessionManager.sessionStatus[clientId] = "deleted";
-    return res.json({ status: "deleted", clientId });
-  } else {
-    // Jika session tidak ada, tetap hapus data status/qr
-    delete sessionManager.qrCodes[clientId];
-    delete sessionManager.sessionStatus[clientId];
-    return res.json({ status: "deleted", clientId });
-  }
-});
+// DELETE /clients/:clientId (delete client dari model utama dan hapus session WhatsApp jika ada)
+router.delete(
+  "/:clientId",
+  verifyToken,
+  requireRole(["admin", "user"]),
+  (req, res, next) => {
+    const { clientId } = req.params;
+    const session = sessionManager.getSession(clientId);
+    if (session) {
+      session.destroy();
+      delete sessionManager.sessions[clientId];
+      sessionManager.qrCodes[clientId] = null;
+      sessionManager.sessionStatus[clientId] = "deleted";
+    } else {
+      delete sessionManager.qrCodes[clientId];
+      delete sessionManager.sessionStatus[clientId];
+    }
+    next();
+  },
+  deleteClient
+);
 
 // POST /clients/:clientId/disconnect (logout)
 router.post("/:clientId/disconnect", (req, res) => {

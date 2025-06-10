@@ -23,12 +23,19 @@ router.get("/", (req, res) => {
 
 // POST /sessions/:clientId
 // Protected route, requires authentication and role check
+// Hanya boleh membuat session WhatsApp untuk clientId yang sudah ada di model utama
 router.post(
   "/:clientId",
   verifyToken,
   requireRole(["admin", "user"]),
   (req, res) => {
     const { clientId } = req.params;
+    const clients = require("../models/apiClientModel").getAllClients();
+    if (!clients.find((c) => c.id === clientId)) {
+      return res.status(404).json({
+        error: "Client ID tidak ditemukan. Tambahkan client dulu.",
+      });
+    }
     const session = sessionManager.createSession(clientId);
     res.status(201).json({ status: "Session created", clientId });
   }
