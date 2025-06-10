@@ -7,6 +7,11 @@ const {
   deleteClient,
 } = require("../controllers/apiClientController");
 const { verifyToken, requireRole } = require("../middlewares/authMiddleware");
+const {
+  getAllClients,
+  registerApiClient,
+} = require("../models/apiClientModel");
+const crypto = require("crypto");
 
 // Tambah client baru (CRUD utama)
 router.post(
@@ -84,5 +89,52 @@ router.post("/:clientId/destroy", (req, res) => {
     return res.status(500).json({ error: "Fungsi destroy tidak tersedia." });
   }
 });
+
+// GET /clients/:clientId/token - get API key for a client (owner or admin only)
+router.get(
+  "/:clientId/token",
+  verifyToken,
+  requireRole(["admin", "user"]),
+  (req, res) => {
+    const { clientId } = req.params;
+    const clients = getAllClients();
+    const client = clients.find(
+      (c) =>
+        c.id === clientId &&
+        (c.ownerId === req.user.id || req.user.role === "admin")
+    );
+    if (!client) {
+      return res
+        .status(404)
+        .json({ error: "Client tidak ditemukan atau tidak punya akses." });
+    }
+    res.json({ token: client.token });
+  }
+);
+
+// POST /clients/:clientId/token - generate new API key for a client
+router.post(
+  "/:clientId/token",
+  verifyToken,
+  requireRole(["admin", "user"]),
+  (req, res) => {
+    const { clientId } = req.params;
+    const clients = getAllClients();
+    const client = clients.find(
+      (c) =>
+        c.id === clientId &&
+        (c.ownerId === req.user.id || req.user.role === "admin")
+    );
+    if (!client) {
+      return res
+        .status(404)
+        .json({ error: "Client tidak ditemukan atau tidak punya akses." });
+    }
+    // Generate new token
+    const newToken = crypto.randomBytes(32).toString("hex");
+    client.token = newToken;
+    res.json({ token: newToken });
+  }
+);
 
 module.exports = router;
