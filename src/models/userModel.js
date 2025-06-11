@@ -1,17 +1,37 @@
-const users = []; // sementara di-memory
+const { connectDb } = require("../config/db");
+const { ObjectId } = require("mongodb");
 
-function createUser({ email, passwordHash, role }) {
-  const user = { id: Date.now().toString(), email, passwordHash, role };
-  users.push(user);
+async function getUserById(id) {
+  const db = await connectDb();
+  return db.collection("users").findOne({ id });
+}
+
+async function getUserByUsername(username) {
+  const db = await connectDb();
+  return db.collection("users").findOne({ username });
+}
+
+async function getUserByEmail(email) {
+  const db = await connectDb();
+  return db.collection("users").findOne({ email });
+}
+
+async function createUser(user) {
+  const db = await connectDb();
+  user.created_at = new Date();
+  await db.collection("users").insertOne(user);
   return user;
 }
 
-function findUserByEmail(email) {
-  return users.find((user) => user.email === email);
+async function getAllUsers() {
+  const db = await connectDb();
+  return db.collection("users").find({}).toArray();
 }
 
-function getAllUsers() {
-  return users;
-}
-
-module.exports = { createUser, findUserByEmail, getAllUsers };
+module.exports = {
+  getUserById,
+  getUserByUsername,
+  getUserByEmail,
+  createUser,
+  getAllUsers,
+};

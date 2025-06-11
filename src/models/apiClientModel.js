@@ -1,29 +1,42 @@
-const apiClients = []; // sementara in-memory
+const { connectDb } = require("../config/db");
+const { ObjectId } = require("mongodb");
 
-function registerApiClient({ id, name, token, ownerId }) {
-  // Gunakan id dari parameter jika ada, jika tidak pakai Date.now()
-  const clientId = id || Date.now().toString();
-  const client = { id: clientId, name, token, ownerId };
-  console.log("Registering API client:", client);
-  apiClients.push(client);
+async function getAllClients() {
+  const db = await connectDb();
+  return db.collection("clients").find({}).toArray();
+}
+
+async function findClientByToken(token) {
+  const db = await connectDb();
+  return db.collection("clients").findOne({ token });
+}
+
+async function registerApiClient({
+  id,
+  name,
+  token,
+  ownerId,
+  user_id,
+  created_by,
+}) {
+  const db = await connectDb();
+  const client = {
+    id,
+    name,
+    token,
+    ownerId,
+    user_id,
+    created_by,
+    created_at: new Date(),
+  };
+  await db.collection("clients").insertOne(client);
   return client;
 }
 
-function findClientByToken(token) {
-  return apiClients.find((c) => c.token === token);
-}
-
-function getAllClients() {
-  return apiClients;
-}
-
-function deleteClientById(clientId) {
-  const idx = apiClients.findIndex((c) => c.id === clientId);
-  if (idx !== -1) {
-    apiClients.splice(idx, 1);
-    return true;
-  }
-  return false;
+async function deleteClientById(clientId) {
+  const db = await connectDb();
+  const result = await db.collection("clients").deleteOne({ id: clientId });
+  return result.deletedCount > 0;
 }
 
 module.exports = {
