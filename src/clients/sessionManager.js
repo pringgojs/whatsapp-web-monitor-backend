@@ -97,6 +97,26 @@ class SessionManager {
       // Ignore status broadcast
       if (msg.id.remote === "status@broadcast") return;
 
+      // --- THROTTLE/ANTISPAM: Batasi jumlah pesan masuk per detik per client ---
+      if (!this._msgTimestamps) this._msgTimestamps = {};
+      const now = Date.now();
+      if (!this._msgTimestamps[clientId]) this._msgTimestamps[clientId] = [];
+      // Hapus timestamp lebih dari 10 detik lalu
+      this._msgTimestamps[clientId] = this._msgTimestamps[clientId].filter(
+        (ts) => now - ts < 10000
+      );
+      if (this._msgTimestamps[clientId].length > 30) {
+        // Jika lebih dari 30 pesan masuk dalam 10 detik, abaikan pesan
+        if (this._msgTimestamps[clientId].length % 10 === 0) {
+          console.warn(
+            `[${clientId}] Terlalu banyak pesan masuk, throttle aktif (${this._msgTimestamps[clientId].length} pesan/10detik)`
+          );
+        }
+        return;
+      }
+      this._msgTimestamps[clientId].push(now);
+      // --- END THROTTLE ---
+
       // --- WEBHOOK LOGIC ---
       const webhookUrl = getWebhooks()[clientId];
       const customHeaders = getWebhookHeaders()[clientId] || {};
@@ -112,7 +132,26 @@ class SessionManager {
         };
         shouldSend = true;
       } else if (msg.hasMedia) {
-        const attachmentData = await msg.downloadMedia();
+        // Tambahan: cek tipe media sebelum downloadMedia
+        if (msg.type === "interactive" || msg.type === "unknown") {
+          console.warn(
+            `[${clientId}] Pesan media tipe tidak didukung: ${msg.type}`
+          );
+          return;
+        }
+        let attachmentData = null;
+        try {
+          attachmentData = await msg.downloadMedia();
+        } catch (err) {
+          console.error(`[${clientId}] Gagal download media:`, err.message);
+          return; // Jangan proses lebih lanjut jika gagal download
+        }
+        if (!attachmentData || !attachmentData.mimetype) {
+          console.warn(
+            `[${clientId}] Media tidak valid atau mimetype tidak ditemukan.`
+          );
+          return;
+        }
         const allowedTypes = [
           "image/jpeg",
           "image/png",
@@ -130,6 +169,10 @@ class SessionManager {
             timestamp: msg.timestamp,
           };
           shouldSend = true;
+        } else {
+          console.warn(
+            `[${clientId}] Mimetype tidak diizinkan: ${attachmentData.mimetype}`
+          );
         }
       } else if (!(msg.body === "" && msg.type === "e2e_notification")) {
         payload = {
