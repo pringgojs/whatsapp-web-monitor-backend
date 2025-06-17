@@ -5,6 +5,7 @@ const {
   createClient,
   listClients,
   deleteClient,
+  updateWebhook,
 } = require("../controllers/apiClientController");
 const { verifyToken, requireRole } = require("../middlewares/authMiddleware");
 const {
@@ -27,6 +28,14 @@ router.delete(
   verifyToken,
   requireRole(["admin", "user"]),
   deleteClient
+);
+
+// PATCH /clients/:clientId/webhook - update webhook client
+router.patch(
+  "/:clientId/webhook",
+  verifyToken,
+  requireRole(["admin", "user"]),
+  updateWebhook
 );
 
 // POST /clients/:clientId/disconnect (logout)
@@ -70,9 +79,9 @@ router.get(
   "/:clientId/token",
   verifyToken,
   requireRole(["admin", "user"]),
-  (req, res) => {
+  async (req, res) => {
     const { clientId } = req.params;
-    const clients = getAllClients();
+    const clients = await getAllClients();
     const client = clients.find(
       (c) =>
         c.id === clientId &&
@@ -92,9 +101,9 @@ router.post(
   "/:clientId/token",
   verifyToken,
   requireRole(["admin", "user"]),
-  (req, res) => {
+  async (req, res) => {
     const { clientId } = req.params;
-    const clients = getAllClients();
+    const clients = await getAllClients();
     const client = clients.find(
       (c) =>
         c.id === clientId &&

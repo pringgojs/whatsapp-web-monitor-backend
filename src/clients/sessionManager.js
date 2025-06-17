@@ -225,10 +225,10 @@ class SessionManager {
   async getClientInfo(clientId) {
     const session = this.getSession(clientId);
     let waNumber = null;
-    console.log("user:", clientId, session.info.me.user);
+    // Cek aman sebelum akses info.me.user
     if (session && session.info && session.info.me && session.info.me.user) {
       waNumber = session.info.me.user;
-      console.log("info", waNumber);
+      console.log("info", clientId, waNumber);
     } else {
       // fallback: format dari clientId
       let num = String(clientId).replace(/\D/g, "");
@@ -237,6 +237,7 @@ class SessionManager {
       num = num.replace(/^620+/, "62");
       if (num.length < 10) num = null;
       waNumber = num;
+      console.log("user fallback:", clientId, waNumber);
     }
     return {
       clientId,

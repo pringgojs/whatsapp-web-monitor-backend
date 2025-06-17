@@ -3,6 +3,7 @@ const {
   registerApiClient,
   getAllClients,
   deleteClientById,
+  updateClientWebhook,
 } = require("../models/apiClientModel");
 const sessionManager = require("../clients/sessionManager");
 
@@ -64,5 +65,36 @@ exports.deleteClient = async (req, res) => {
     return res.json({ status: "deleted", clientId });
   } else {
     return res.status(500).json({ error: "Gagal menghapus client." });
+  }
+};
+
+// Update webhook client
+exports.updateWebhook = async (req, res) => {
+  const { clientId } = req.params;
+  const { webhookUrl, webhookHeaders } = req.body;
+  if (!webhookUrl) {
+    return res.status(400).json({ error: "webhookUrl wajib diisi" });
+  }
+  // Cek kepemilikan client
+  const clients = await getAllClients();
+  const client = clients.find(
+    (c) =>
+      c.id === clientId &&
+      (c.ownerId === req.user.id || req.user.role === "admin")
+  );
+  if (!client) {
+    return res
+      .status(404)
+      .json({ error: "Client tidak ditemukan atau tidak punya akses." });
+  }
+  const updated = await updateClientWebhook(
+    clientId,
+    webhookUrl,
+    webhookHeaders
+  );
+  if (updated) {
+    res.json({ status: "ok", clientId, webhookUrl, webhookHeaders });
+  } else {
+    res.status(500).json({ error: "Gagal update webhook client." });
   }
 };
