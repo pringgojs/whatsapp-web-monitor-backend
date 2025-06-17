@@ -16,73 +16,17 @@ const {
 const crypto = require("crypto");
 
 // Tambah client baru (CRUD utama)
-router.post(
-  "/",
-  verifyToken,
-  requireRole(["admin", "user"]),
-  async (req, res) => {
-    // Validasi: id harus unik
-    const { id, name, user_id, created_by } = req.body;
-    if (!id || !name) {
-      return res.status(400).json({ error: "Missing required fields" });
-    }
-    const clients = await getAllClients();
-    if (clients.find((c) => c.id === id)) {
-      return res.status(400).json({ error: "Client ID sudah terdaftar." });
-    }
-    // Buat token baru
-    const token = crypto.randomBytes(32).toString("hex");
-    const ownerId = req.user.id;
-    const client = await registerApiClient({
-      id,
-      name,
-      token,
-      ownerId,
-      user_id,
-      created_by,
-    });
-    res.json(client);
-  }
-);
+router.post("/", verifyToken, requireRole(["admin", "user"]), createClient);
 
-router.get(
-  "/",
-  verifyToken,
-  requireRole(["admin", "user"]),
-  async (req, res) => {
-    const clients = await getAllClients();
-    // Filter hanya client milik user login atau admin
-    const filtered = clients.filter(
-      (c) => c.ownerId === req.user.id || req.user.role === "admin"
-    );
-    res.json({ clients: filtered });
-  }
-);
+// GET /clients
+router.get("/", verifyToken, requireRole(["admin", "user"]), listClients);
 
-// DELETE /clients/:clientId (delete client dari model utama dan hapus session WhatsApp jika ada)
+// DELETE /clients/:clientId
 router.delete(
   "/:clientId",
   verifyToken,
   requireRole(["admin", "user"]),
-  async (req, res) => {
-    const { clientId } = req.params;
-    const session = sessionManager.getSession(clientId);
-    if (session) {
-      session.destroy();
-      delete sessionManager.sessions[clientId];
-      sessionManager.qrCodes[clientId] = null;
-      sessionManager.sessionStatus[clientId] = "deleted";
-    } else {
-      delete sessionManager.qrCodes[clientId];
-      delete sessionManager.sessionStatus[clientId];
-    }
-    const deleted = await deleteClientById(clientId);
-    if (deleted) {
-      res.json({ status: "deleted", clientId });
-    } else {
-      res.status(404).json({ error: "Client tidak ditemukan." });
-    }
-  }
+  deleteClient
 );
 
 // POST /clients/:clientId/disconnect (logout)

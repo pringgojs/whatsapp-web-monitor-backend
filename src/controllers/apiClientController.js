@@ -4,6 +4,7 @@ const {
   getAllClients,
   deleteClientById,
 } = require("../models/apiClientModel");
+const sessionManager = require("../clients/sessionManager");
 
 exports.createClient = async (req, res) => {
   const { id, name } = req.body;
@@ -23,18 +24,31 @@ exports.createClient = async (req, res) => {
   }
 };
 
-exports.listClients = (req, res) => {
-  const clients = getAllClients().filter(
+exports.listClients = async (req, res) => {
+  console.log("proses list clients");
+  const clients = await getAllClients();
+  const filtered = clients.filter(
     (c) => c.ownerId === req.user.id || req.user.role === "admin"
   );
-  res.json({ clients });
+  // Trigger session dan ambil status
+  const clientsWithStatus = filtered.map((client) => {
+    // Trigger session jika belum ada
+    if (!sessionManager.getSession(client.id)) {
+      sessionManager.createSession(client.id);
+    }
+    return {
+      ...client,
+      waStatus: sessionManager.getStatus(client.id),
+    };
+  });
+  res.json({ clients: clientsWithStatus });
 };
 
-exports.deleteClient = (req, res) => {
+exports.deleteClient = async (req, res) => {
   const { clientId } = req.params;
   console.log("proses delete client", clientId);
   // Only allow owner or admin to delete
-  const clients = getAllClients();
+  const clients = await getAllClients();
   const client = clients.find(
     (c) =>
       c.id === clientId &&
@@ -45,7 +59,7 @@ exports.deleteClient = (req, res) => {
       .status(404)
       .json({ error: "Client tidak ditemukan atau tidak punya akses." });
   }
-  const deleted = deleteClientById(clientId);
+  const deleted = await deleteClientById(clientId);
   if (deleted) {
     return res.json({ status: "deleted", clientId });
   } else {

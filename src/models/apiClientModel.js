@@ -11,22 +11,13 @@ async function findClientByToken(token) {
   return db.collection("clients").findOne({ token });
 }
 
-async function registerApiClient({
-  id,
-  name,
-  token,
-  ownerId,
-  user_id,
-  created_by,
-}) {
+async function registerApiClient({ id, name, token, ownerId }) {
   const db = await connectDb();
   const client = {
     id,
     name,
     token,
     ownerId,
-    user_id,
-    created_by,
     created_at: new Date(),
   };
   await db.collection("clients").insertOne(client);
