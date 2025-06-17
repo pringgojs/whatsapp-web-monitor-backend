@@ -4,6 +4,7 @@ const {
   getAllClients,
   deleteClientById,
   updateClientWebhook,
+  updateClientToken,
 } = require("../models/apiClientModel");
 const sessionManager = require("../clients/sessionManager");
 
@@ -96,5 +97,30 @@ exports.updateWebhook = async (req, res) => {
     res.json({ status: "ok", clientId, webhookUrl, webhookHeaders });
   } else {
     res.status(500).json({ error: "Gagal update webhook client." });
+  }
+};
+
+// Update/generate API key (token) client
+exports.updateApiKey = async (req, res) => {
+  const { clientId } = req.params;
+  // Cek kepemilikan client
+  const clients = await getAllClients();
+  const client = clients.find(
+    (c) =>
+      c.id === clientId &&
+      (c.ownerId === req.user.id || req.user.role === "admin")
+  );
+  if (!client) {
+    return res
+      .status(404)
+      .json({ error: "Client tidak ditemukan atau tidak punya akses." });
+  }
+  // Generate new token
+  const newToken = crypto.randomBytes(32).toString("hex");
+  const updated = await updateClientToken(clientId, newToken);
+  if (updated) {
+    res.json({ token: newToken });
+  } else {
+    res.status(500).json({ error: "Gagal update API key client." });
   }
 };

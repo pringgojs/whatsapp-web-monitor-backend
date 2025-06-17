@@ -42,10 +42,20 @@ async function updateClientWebhook(id, webhookUrl, webhookHeaders) {
   return result.modifiedCount > 0;
 }
 
+// Update/generate API key (token) client
+async function updateClientToken(id, token) {
+  const db = await connectDb();
+  const result = await db
+    .collection("clients")
+    .updateOne({ id }, { $set: { token } });
+  return result.modifiedCount > 0;
+}
+
 module.exports = {
   registerApiClient,
   findClientByToken,
   getAllClients,
   deleteClientById,
   updateClientWebhook,
+  updateClientToken,
 };

@@ -101,24 +101,7 @@ router.post(
   "/:clientId/token",
   verifyToken,
   requireRole(["admin", "user"]),
-  async (req, res) => {
-    const { clientId } = req.params;
-    const clients = await getAllClients();
-    const client = clients.find(
-      (c) =>
-        c.id === clientId &&
-        (c.ownerId === req.user.id || req.user.role === "admin")
-    );
-    if (!client) {
-      return res
-        .status(404)
-        .json({ error: "Client tidak ditemukan atau tidak punya akses." });
-    }
-    // Generate new token
-    const newToken = crypto.randomBytes(32).toString("hex");
-    client.token = newToken;
-    res.json({ token: newToken });
-  }
+  require("../controllers/apiClientController").updateApiKey
 );
 
 // GET /clients/:clientId - get detail client (webhookUrl & webhookHeaders)
