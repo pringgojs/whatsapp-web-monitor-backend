@@ -121,4 +121,26 @@ router.post(
   }
 );
 
+// GET /clients/:clientId - get detail client (webhookUrl & webhookHeaders)
+router.get(
+  "/:clientId",
+  verifyToken,
+  requireRole(["admin", "user"]),
+  async (req, res) => {
+    const { clientId } = req.params;
+    const clients = await getAllClients();
+    const client = clients.find(
+      (c) =>
+        c.id === clientId &&
+        (c.ownerId === req.user.id || req.user.role === "admin")
+    );
+    if (!client) {
+      return res
+        .status(404)
+        .json({ error: "Client tidak ditemukan atau tidak punya akses." });
+    }
+    res.json({ client });
+  }
+);
+
 module.exports = router;
