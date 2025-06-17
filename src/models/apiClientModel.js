@@ -51,6 +51,24 @@ async function updateClientToken(id, token) {
   return result.modifiedCount > 0;
 }
 
+// Update nomor WhatsApp client di database
+async function updateClientWaNumber(id, waNumber) {
+  const db = await connectDb();
+  const result = await db
+    .collection("clients")
+    .updateOne({ id }, { $set: { waNumber } });
+  return result.modifiedCount > 0;
+}
+
+// Update status terakhir client di database
+async function updateClientStatus(id, status) {
+  const db = await connectDb();
+  const result = await db
+    .collection("clients")
+    .updateOne({ id }, { $set: { status } });
+  return result.modifiedCount > 0;
+}
+
 module.exports = {
   registerApiClient,
   findClientByToken,
@@ -58,4 +76,6 @@ module.exports = {
   deleteClientById,
   updateClientWebhook,
   updateClientToken,
+  updateClientWaNumber,
+  updateClientStatus,
 };

@@ -1,6 +1,10 @@
 const { Client, LocalAuth } = require("whatsapp-web.js");
 const qrcode = require("qrcode");
 const axios = require("axios"); // Tambah axios untuk webhook
+const {
+  updateClientWaNumber,
+  updateClientStatus,
+} = require("../models/apiClientModel");
 
 // Webhook config per client (in-memory, bisa dipindah ke DB jika perlu)
 // Sekarang juga menyimpan custom headers per client
@@ -60,31 +64,69 @@ class SessionManager {
     client.on("qr", async (qr) => {
       console.log(`[${clientId}] QR Code:\n${qr}`);
       this.sessionStatus[clientId] = "qr";
-
+      // Simpan status ke DB
+      try {
+        await updateClientStatus(clientId, "qr");
+      } catch (e) {
+        console.error(`[${clientId}] Gagal update status ke DB:`, e.message);
+      }
       const qrImage = await qrcode.toDataURL(qr); // base64
       this.qrCodes[clientId] = qrImage;
     });
 
-    client.on("ready", () => {
+    client.on("ready", async () => {
       console.log(`[${clientId}] WhatsApp client ready`);
       this.sessionStatus[clientId] = "ready";
+      // Simpan status ke DB
+      try {
+        await updateClientStatus(clientId, "ready");
+      } catch (e) {
+        console.error(`[${clientId}] Gagal update status ke DB:`, e.message);
+      }
+      // Simpan nomor WhatsApp ke database
+      try {
+        const waNumber = client.info?.me?.user;
+        if (waNumber) {
+          await updateClientWaNumber(clientId, waNumber);
+          console.log(`[${clientId}] waNumber updated in DB:`, waNumber);
+        }
+      } catch (e) {
+        console.error(`[${clientId}] Gagal update waNumber ke DB:`, e.message);
+      }
     });
 
-    client.on("authenticated", () => {
+    client.on("authenticated", async () => {
       console.log(`[${clientId}] Authenticated`);
+      // Simpan status ke DB
+      try {
+        await updateClientStatus(clientId, "authenticated");
+      } catch (e) {
+        console.error(`[${clientId}] Gagal update status ke DB:`, e.message);
+      }
     });
 
-    client.on("disconnected", (reason) => {
+    client.on("disconnected", async (reason) => {
       console.log(`[${clientId}] Disconnected: ${reason}`);
       this.sessionStatus[clientId] = "disconnected";
       this.qrCodes[clientId] = null; // clear QR code on disconnect
-
+      // Simpan status ke DB
+      try {
+        await updateClientStatus(clientId, "disconnected");
+      } catch (e) {
+        console.error(`[${clientId}] Gagal update status ke DB:`, e.message);
+      }
       delete this.sessions[clientId];
     });
 
-    client.on("auth_failure", () => {
+    client.on("auth_failure", async () => {
       this.sessionStatus[clientId] = "auth_failure";
       console.log(`[${clientId}] Auth failure`);
+      // Simpan status ke DB
+      try {
+        await updateClientStatus(clientId, "auth_failure");
+      } catch (e) {
+        console.error(`[${clientId}] Gagal update status ke DB:`, e.message);
+      }
     });
 
     client.on("message", async (msg) => {

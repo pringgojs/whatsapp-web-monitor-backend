@@ -67,6 +67,9 @@ router.post("/:clientId/destroy", (req, res) => {
     session.destroy(); // hanya putus koneksi, session tetap ada
     sessionManager.sessionStatus[clientId] = "destroyed";
     sessionManager.qrCodes[clientId] = null;
+    // Simpan status destroyed ke DB
+    const { updateClientStatus } = require("../models/apiClientModel");
+    updateClientStatus(clientId, "destroyed");
     // Jangan hapus sessionManager.sessions[clientId] agar client tetap muncul di daftar
     return res.json({ status: "destroyed", clientId, method: "destroy" });
   } else {
