@@ -5,17 +5,22 @@ const {
   deleteClientById,
 } = require("../models/apiClientModel");
 
-exports.createClient = (req, res) => {
+exports.createClient = async (req, res) => {
   const { id, name } = req.body;
-  const token = crypto.randomBytes(20).toString("hex"); // API key
-
-  // Gunakan id dari body jika ada (frontend mengirim clientId manual)
-  const client = registerApiClient({ id, name, token, ownerId: req.user.id });
-
-  res.status(201).json({
-    message: "Client created",
-    client: { id: client.id, name: client.name, token },
-  });
+  if (!id || !name) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+  const token = crypto.randomBytes(32).toString("hex");
+  const ownerId = req.user.id;
+  try {
+    const client = await registerApiClient({ id, name, token, ownerId });
+    return res.status(201).json({
+      message: "Client created",
+      client: { id: client.id, name: client.name, token: client.token },
+    });
+  } catch (e) {
+    return res.status(500).json({ error: "Gagal membuat client" });
+  }
 };
 
 exports.listClients = (req, res) => {

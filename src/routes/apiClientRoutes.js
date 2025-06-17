@@ -22,8 +22,8 @@ router.post(
   requireRole(["admin", "user"]),
   async (req, res) => {
     // Validasi: id harus unik
-    const { id, name, ownerId, user_id, created_by } = req.body;
-    if (!id || !name || !ownerId) {
+    const { id, name, user_id, created_by } = req.body;
+    if (!id || !name) {
       return res.status(400).json({ error: "Missing required fields" });
     }
     const clients = await getAllClients();
@@ -32,6 +32,7 @@ router.post(
     }
     // Buat token baru
     const token = crypto.randomBytes(32).toString("hex");
+    const ownerId = req.user.id;
     const client = await registerApiClient({
       id,
       name,
@@ -50,7 +51,11 @@ router.get(
   requireRole(["admin", "user"]),
   async (req, res) => {
     const clients = await getAllClients();
-    res.json(clients);
+    // Filter hanya client milik user login atau admin
+    const filtered = clients.filter(
+      (c) => c.ownerId === req.user.id || req.user.role === "admin"
+    );
+    res.json({ clients: filtered });
   }
 );
 
