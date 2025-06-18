@@ -11,17 +11,17 @@ const { verifyToken, requireRole } = require("../middlewares/authMiddleware");
 // GET /users - list all users (admin only)
 router.get("/", verifyToken, requireRole(["admin"]), async (req, res) => {
   const users = await getAllUsers();
-  // Kembalikan array langsung, agar frontend bisa langsung pakai data
-  res.json(
-    users.map((u) => ({
+  // Kembalikan dalam bentuk { users: [...] } agar frontend kompatibel
+  res.json({
+    users: users.map((u) => ({
       id: u.id,
       email: u.email,
       role: u.role,
       name: u.name,
       username: u.username,
       created_at: u.created_at,
-    }))
-  );
+    })),
+  });
 });
 
 // POST /users - create user (admin only)
